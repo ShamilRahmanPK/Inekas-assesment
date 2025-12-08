@@ -1,4 +1,3 @@
-// UploadPhotos.jsx
 import { useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Cropper } from "react-advanced-cropper";
@@ -6,12 +5,11 @@ import "react-advanced-cropper/dist/style.css";
 import { MdUndo } from "react-icons/md";
 import logo from "../assets/logo.png";
 
-export default function UploadPhotos({ onNext }) {
+export default function UploadPhotos() {
   const navigate = useNavigate();
   const location = useLocation();
   const { size: initialSize, paperType: initialPaperType } = location.state || {};
 
-  // DEFAULTS
   const [defaultSize, setDefaultSize] = useState(initialSize || "4X6");
   const [paperType, setPaperType] = useState(initialPaperType || "Luster");
 
@@ -21,17 +19,13 @@ export default function UploadPhotos({ onNext }) {
 
   const [images, setImages] = useState([]);
   const [totalAmount, setTotalAmount] = useState(0);
-
-  // Promo
   const [promoCode, setPromoCode] = useState("");
   const [discountPercent, setDiscountPercent] = useState(0);
   const [promoMessage, setPromoMessage] = useState("");
 
-  // Crop modal
   const [editingImage, setEditingImage] = useState(null);
   const cropperRef = useRef(null);
 
-  // PRICE
   const priceBySize = {
     "3.5X5": 3,
     "4X6": 5,
@@ -41,22 +35,23 @@ export default function UploadPhotos({ onNext }) {
     "8X8": 12,
   };
 
-  const calculateImagePrice = (imgSize, quantity = 1) => {
+  const calculateImagePrice = (imgSize, quantity) => {
     let price = priceBySize[imgSize] || 5;
     if (paperType === "Glossy") price += 2;
     return price * quantity;
   };
 
+  // Total amount calculation
   useEffect(() => {
     const total = images.reduce(
       (sum, img) => sum + calculateImagePrice(img.size, img.quantity),
       0
     );
-    const discountedTotal = total - (total * discountPercent) / 100;
-    setTotalAmount(discountedTotal);
+    const discounted = total - (total * discountPercent) / 100;
+    setTotalAmount(discounted);
   }, [images, paperType, discountPercent]);
 
-  // PROMO CODE
+  // Promo code
   const handleApplyPromo = () => {
     const code = promoCode.toUpperCase();
     if (code === "HALFOFF") {
@@ -74,37 +69,43 @@ export default function UploadPhotos({ onNext }) {
     }
   };
 
+  // Upload images
   const handleImageUpload = (e) => {
     const files = Array.from(e.target.files);
-    const previews = files.map((file) => ({
+    const mapped = files.map((file) => ({
       id: `${file.name}-${file.size}-${Date.now()}`,
-      file,
       size: defaultSize,
       quantity: 1,
-      originalPreview: URL.createObjectURL(file),
-      editedPreview: null,
+      originalFile: file,
+      editedFile: null,
+      previewURL: URL.createObjectURL(file),
     }));
-    setImages((prev) => [...prev, ...previews]);
+    setImages((prev) => [...prev, ...mapped]);
   };
 
-  const removeImage = (index) =>
-    setImages((prev) => prev.filter((_, i) => i !== index));
+  const removeImage = (index) => setImages((prev) => prev.filter((_, i) => i !== index));
+  const openEditModal = (img) => setEditingImage(img);
 
-  const openEditModal = (img) => {
-    setEditingImage(img);
+  const canvasToFile = async (canvas, filename) => {
+    return new Promise((resolve) => {
+      canvas.toBlob((blob) => {
+        const file = new File([blob], filename, { type: "image/jpeg" });
+        resolve(file);
+      }, "image/jpeg");
+    });
   };
 
-  const applyEdit = () => {
+  const applyEdit = async () => {
     if (!editingImage || !cropperRef.current) return;
-
     const canvas = cropperRef.current.getCanvas();
-    const croppedImage = canvas.toDataURL("image/jpeg");
+    if (!canvas) return;
+
+    const editedFile = await canvasToFile(canvas, editingImage.originalFile.name);
+    const previewURL = URL.createObjectURL(editedFile);
 
     setImages((prev) =>
       prev.map((img) =>
-        img.id === editingImage.id
-          ? { ...img, editedPreview: croppedImage }
-          : img
+        img.id === editingImage.id ? { ...img, editedFile, previewURL } : img
       )
     );
     setEditingImage(null);
@@ -112,99 +113,110 @@ export default function UploadPhotos({ onNext }) {
 
   const revertImage = (id) => {
     setImages((prev) =>
-      prev.map((img) => (img.id === id ? { ...img, editedPreview: null } : img))
+      prev.map((img) =>
+        img.id === id
+          ? { ...img, editedFile: null, previewURL: URL.createObjectURL(img.originalFile) }
+          : img
+      )
     );
   };
 
   const getAspect = (s) => {
     switch (s) {
-      case "3.5X5":
-        return 3.5 / 5;
-      case "4X6":
-        return 4 / 6;
-      case "5X7":
-        return 5 / 7;
-      case "8X10":
-        return 8 / 10;
+      case "3.5X5": return 3.5 / 5;
+      case "4X6": return 4 / 6;
+      case "5X7": return 5 / 7;
+      case "8X10": return 8 / 10;
       case "4X4":
-      case "8X8":
-        return 1;
-      default:
-        return 4 / 6;
+      case "8X8": return 1;
+      default: return 4 / 6;
     }
   };
 
+  // Navigate to checkout with only edited images
   const goToAddressPage = () => {
+    const imagesToSend = images
+      .filter((img) => img.editedFile) 
+      .map((img) => ({
+        id: img.id,
+        size: img.size,
+        quantity: img.quantity,
+        file: img.editedFile,
+      }));
+
+    if (imagesToSend.length === 0) {
+      alert("Please crop at least one image before proceeding.");
+      return;
+    }
+
     navigate("/checkout", {
       state: {
-        images,
+        images: imagesToSend,
         paperType,
         totalAmount,
         discountPercent,
-        promoCode: discountPercent ? promoCode : null,
+        promoCode,
       },
     });
   };
 
+  const allEdited = images.every((img) => img.editedFile); 
+
   return (
     <div className="bg-white min-h-screen px-4 md:px-10 py-10 pb-40">
-      <div className="flex items-center justify-between mb-10">
-        <h1 className="text-4xl font-serif mb-6 text-left">
-          Upload Photos
-        </h1>
-        <img
-          src={logo}
-          alt="Logo"
-          className="w-32 md:w-40 object-contain"
-        />
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-4xl font-serif mb-6 text-left">Upload Photos</h1>
+        <img src={logo} alt="Logo" className="w-32 md:w-40 object-contain" />
+      </div>
+
+      {/* Instructions */}
+      <div className="mb-6 p-4 bg-yellow-50 border-l-4 border-yellow-400 text-sm text-yellow-800 rounded">
+        <p><strong>Instructions:</strong></p>
+        <ul className="list-disc list-inside mt-2">
+          <li>Upload your photos using the "UPLOAD PHOTOS" button.</li>
+          <li>Select the size and quantity for each photo.</li>
+          <li>Choose your preferred paper type.</li>
+          <li>Click on an image to crop it before proceeding.</li>
+          <li><strong>Note:</strong> The "NEXT" button will be enabled only after all images have been cropped.</li>
+          <li>You can apply a promo code if available.</li>
+        </ul>
       </div>
 
       <div className="flex flex-col md:flex-row gap-10">
         {/* LEFT */}
         <div className="flex-1">
           <label className="w-full h-[200px] md:h-[220px] border-2 border-dashed border-gray-400 flex flex-col items-center justify-center cursor-pointer hover:border-black transition shadow-sm hover:shadow-md">
-            <input
-              type="file"
-              multiple
-              accept="image/*"
-              className="hidden"
-              onChange={handleImageUpload}
-            />
+            <input type="file" multiple accept="image/*" className="hidden" onChange={handleImageUpload} />
             <p className="text-sm tracking-widest">UPLOAD PHOTOS</p>
           </label>
 
           {images.length > 0 && (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 mt-6">
               {images.map((img, index) => (
-                <div
-                  key={img.id}
-                  className="relative overflow-hidden shadow-md bg-gray-100 p-2"
+                <div 
+                  key={img.id} 
+                  className={`relative overflow-hidden shadow-md bg-gray-100 p-2 rounded-md ${!img.editedFile ? 'border-2 border-red-400' : ''}`}
                 >
                   <div
                     style={{ aspectRatio: getAspect(img.size) }}
-                    className="overflow-hidden cursor-pointer"
+                    className="overflow-hidden cursor-pointer relative"
                     onClick={() => openEditModal(img)}
                   >
-                    <img
-                      src={img.editedPreview || img.originalPreview}
-                      className="w-full h-full object-cover"
-                    />
+                    <img src={img.previewURL} className="w-full h-full object-cover rounded-md" />
                   </div>
 
                   <button
                     onClick={() => removeImage(index)}
-                    className="absolute top-2 right-2 bg-black text-white text-xs px-2 py-1"
+                    className="absolute top-2 right-2 bg-black text-white text-xs px-2 py-1 rounded"
                   >
                     ✕
                   </button>
 
-                  {img.editedPreview && (
+                  {img.editedFile && (
                     <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        revertImage(img.id);
-                      }}
-                      className="absolute top-2 left-2 bg-black text-white text-xs px-2 py-1"
+                      onClick={(e) => { e.stopPropagation(); revertImage(img.id); }}
+                      className="absolute top-2 left-2 bg-black text-white text-xs px-2 py-1 rounded"
                     >
                       <MdUndo size={18} />
                     </button>
@@ -216,18 +228,14 @@ export default function UploadPhotos({ onNext }) {
                       onChange={(e) =>
                         setImages((prev) =>
                           prev.map((item) =>
-                            item.id === img.id
-                              ? { ...item, size: e.target.value }
-                              : item
+                            item.id === img.id ? { ...item, size: e.target.value } : item
                           )
                         )
                       }
                       className="mt-2 w-full border text-sm px-2 py-1"
                     >
                       {sizes.map((s) => (
-                        <option key={s} value={s}>
-                          {s}
-                        </option>
+                        <option key={s} value={s}>{s}</option>
                       ))}
                     </select>
 
@@ -237,18 +245,14 @@ export default function UploadPhotos({ onNext }) {
                       onChange={(e) =>
                         setImages((prev) =>
                           prev.map((item) =>
-                            item.id === img.id
-                              ? { ...item, quantity: Number(e.target.value) }
-                              : item
+                            item.id === img.id ? { ...item, quantity: Number(e.target.value) } : item
                           )
                         )
                       }
                       className="w-full border text-sm px-2 py-1"
                     >
                       {quantities.map((q) => (
-                        <option key={q} value={q}>
-                          {q}
-                        </option>
+                        <option key={q} value={q}>{q}</option>
                       ))}
                     </select>
 
@@ -262,9 +266,9 @@ export default function UploadPhotos({ onNext }) {
           )}
         </div>
 
-        {/* RIGHT PANEL */}
+        {/* RIGHT SIDE */}
         <div className="w-full md:w-[350px] flex flex-col gap-6">
-          <div className="p-6 border bg-gray-50 shadow space-y-6">
+          <div className="p-6 border bg-gray-50 shadow space-y-6 rounded-md">
             <div>
               <p className="font-semibold mb-2">Default Size</p>
               <div className="flex flex-wrap gap-3">
@@ -272,11 +276,7 @@ export default function UploadPhotos({ onNext }) {
                   <button
                     key={s}
                     onClick={() => setDefaultSize(s)}
-                    className={`px-4 py-2 border text-sm ${
-                      defaultSize === s
-                        ? "bg-black text-white"
-                        : "bg-white border-gray-300"
-                    }`}
+                    className={`px-4 py-2 border text-sm ${defaultSize === s ? "bg-black text-white" : "bg-white border-gray-300"}`}
                   >
                     {s}
                   </button>
@@ -291,11 +291,7 @@ export default function UploadPhotos({ onNext }) {
                   <button
                     key={p}
                     onClick={() => setPaperType(p)}
-                    className={`px-4 py-2 border text-sm ${
-                      paperType === p
-                        ? "bg-black text-white"
-                        : "bg-white border-gray-300"
-                    }`}
+                    className={`px-4 py-2 border text-sm ${paperType === p ? "bg-black text-white" : "bg-white border-gray-300"}`}
                   >
                     {p}
                   </button>
@@ -304,90 +300,58 @@ export default function UploadPhotos({ onNext }) {
             </div>
           </div>
 
-          {/* PROMO CODE */}
           <div className="flex flex-col gap-2">
             <div className="flex gap-3 items-center">
-              <input
-                type="text"
-                value={promoCode}
-                onChange={(e) => setPromoCode(e.target.value)}
-                placeholder="Enter promo code"
-                className="flex-1 border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-black"
-              />
-              <button
-                onClick={handleApplyPromo}
-                className="bg-black text-white px-4 py-2 font-semibold hover:bg-gray-900"
-              >
-                APPLY
-              </button>
+              <input type="text" value={promoCode} onChange={(e) => setPromoCode(e.target.value)} placeholder="Enter promo code" className="flex-1 border px-3 py-2 rounded" />
+              <button onClick={handleApplyPromo} className="bg-black text-white px-4 py-2 rounded">APPLY</button>
             </div>
-            {discountPercent ? (
-              <p className="text-sm text-green-600">
-                Promo applied: <b>{promoCode} - {discountPercent}% off</b>
-              </p>
-            ) : null}
             {promoMessage && <p className="text-xs text-gray-500">{promoMessage}</p>}
           </div>
         </div>
       </div>
 
-      {/* BOTTOM BAR */}
-      <div className="fixed bottom-0 left-0 w-full bg-gray-100 px-4 md:px-10 py-4 border-t shadow-[0_-3px_8px_rgba(0,0,0,0.15)] z-50">
-        <div className="max-w-[1200px] mx-auto flex justify-between items-center">
+      {/* Bottom bar */}
+      <div className="fixed bottom-0 left-0 w-full bg-gray-100 px-4 md:px-10 py-4 border-t shadow z-50">
+        <div className="max-w-[1200px] mx-auto flex flex-col md:flex-row justify-between items-center gap-2">
           <h2 className="text-xl font-bold">
             Total Amount: <span className="text-green-600">AED {totalAmount}</span>
-            <span className="text-xs text-gray-500 ml-2">
-              + Delivery charge AED 29 applies within UAE
-            </span>
+            <span className="text-xs font-light"> + AED 29 delivery charges apply</span>
           </h2>
+          
+          {!allEdited && images.length > 0 && (
+            <p className="text-sm text-red-600 mt-1 md:mt-0">⚠ Please crop all uploaded images to proceed.</p>
+          )}
+          
           <button
-            disabled={images.length === 0}
+            disabled={images.length === 0 || !allEdited}
             onClick={goToAddressPage}
-            className="bg-black text-white px-6 py-3 disabled:opacity-50"
+            className="bg-black text-white px-6 py-3 disabled:opacity-50 rounded mt-1 md:mt-0"
           >
             NEXT
           </button>
         </div>
       </div>
 
-      {/* EDIT MODAL */}
+      {/* Cropper Modal */}
       {editingImage && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white shadow-xl w-full max-w-3xl overflow-hidden border border-gray-200">
-            {/* Close Button */}
-            <div className="px-6 py-4 border-b border-gray-100 flex justify-end">
-              <button
-                onClick={() => setEditingImage(null)}
-                className="text-gray-500 hover:text-black text-2xl"
-              >
-                &times;
-              </button>
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white shadow-xl w-full max-w-3xl border rounded-md">
+            <div className="px-6 py-4 border-b flex justify-end">
+              <button onClick={() => setEditingImage(null)} className="text-2xl">×</button>
             </div>
 
-            {/* Cropper */}
-            <div className="relative w-full h-[320px] md:h-[420px] bg-gray-50 flex items-center justify-center">
+            <div className="w-full h-[320px] md:h-[420px] bg-gray-50">
               <Cropper
                 ref={cropperRef}
-                src={editingImage.editedPreview || editingImage.originalPreview}
+                src={editingImage.previewURL}
                 stencilProps={{ aspectRatio: getAspect(editingImage.size) }}
                 className="w-full h-full"
               />
             </div>
 
-            {/* Action Buttons */}
-            <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3">
-              <button
-                onClick={() => setEditingImage(null)}
-                className="px-5 py-2 border border-gray-300 text-gray-600 hover:bg-gray-100"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={applyEdit}
-                className="px-5 py-2 bg-black text-white hover:bg-gray-900 shadow-md"
-              >
-                Apply
-              </button>
+            <div className="px-6 py-4 border-t flex justify-end gap-3">
+              <button onClick={() => setEditingImage(null)} className="px-5 py-2 border rounded">Cancel</button>
+              <button onClick={applyEdit} className="px-5 py-2 bg-black text-white rounded">Apply</button>
             </div>
           </div>
         </div>

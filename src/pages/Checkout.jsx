@@ -1,6 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import logo from "../assets/logo.png";
+// Assuming you have a file that defines the backend URL
+// e.g., export default "http://localhost:5000"
+import SERVER_BASE_URL from "../services/serverURL"; 
+
 
 export default function Checkout() {
   const location = useLocation();
@@ -8,7 +12,7 @@ export default function Checkout() {
   const paypalRef = useRef(null);
 
   const order = location.state;
-  const deliveryCharge = 29; 
+  const deliveryCharge = 29;
 
   const [address, setAddress] = useState({
     name: "",
@@ -21,34 +25,33 @@ export default function Checkout() {
   const [imagePreviews, setImagePreviews] = useState([]);
   const [isAddressComplete, setIsAddressComplete] = useState(false);
   const [paypalMounted, setPaypalMounted] = useState(false);
+  
+  // Use the imported constant
+  const BACKEND_URL = SERVER_BASE_URL; 
 
   const AEDtoUSD = 0.27;
   const totalAmountAED = order ? order.totalAmount + deliveryCharge : 0;
-
 
   useEffect(() => {
     if (!order) navigate("/upload-photos");
   }, [order, navigate]);
 
-
   const handleChange = (e) => {
     setAddress({ ...address, [e.target.name]: e.target.value });
   };
-
 
   useEffect(() => {
     const allFilled = Object.values(address).every((val) => val.trim() !== "");
     setIsAddressComplete(allFilled);
   }, [address]);
 
-  // Generate image previews
+  // Generate image previews from actual files
   useEffect(() => {
     if (!order?.images) return;
 
     const previews = order.images
       .map((imgObj) => {
         if (!imgObj) return null;
-        if (imgObj.url) return imgObj.url;
         if (imgObj.file instanceof File || imgObj.file instanceof Blob) {
           return URL.createObjectURL(imgObj.file);
         }
@@ -65,9 +68,54 @@ export default function Checkout() {
     };
   }, [order]);
 
+  // Submit order with actual image files
+  const handleSubmitOrder = async (paymentId = null) => {
+    if (!order) return;
+
+    const formData = new FormData();
+    formData.append("paperType", order.paperType);
+    formData.append("totalAmount", totalAmountAED);
+    formData.append("discountPercent", order.discountPercent || 0);
+    formData.append("promoCode", order.promoCode || "");
+
+    // Append files and their metadata (quantity/size) separately
+    order.images.forEach((img, index) => {
+      formData.append("images", img.file, img.file.name); 
+      formData.append(`quantity_${index}`, img.quantity); 
+      formData.append(`size_${index}`, img.size);         
+    });
+
+    Object.entries(address).forEach(([key, value]) => {
+      formData.append(key, value);
+    });
+
+    if (paymentId) formData.append("paymentId", paymentId);
+
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/order`, {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+      console.log("Order submitted:", data);
+      
+      if (res.ok) {
+        navigate("/success", { state: { order, address, paymentId } });
+      } else {
+         console.error("Order submission failed on server:", data);
+         alert("Order submission failed. Please check the console for details.");
+      }
+    } catch (err) {
+      console.error("Error submitting order:", err);
+      alert("Network error submitting order.");
+    }
+  };
+
+
   // PayPal button setup
   useEffect(() => {
-    if (!window.paypal || !order || paypalRef.current.children.length > 0) return;
+    if (!window.paypal || !order || (paypalRef.current && paypalRef.current.children.length > 0)) return;
 
     window.paypal
       .Buttons({
@@ -91,31 +139,24 @@ export default function Checkout() {
           }),
         onApprove: async (_, actions) => {
           const details = await actions.order.capture();
-          navigate("/success", {
-            state: { order, address, paymentId: details.id },
-          });
+          console.log("PayPal payment successful:", details);
+          handleSubmitOrder(details.id);
         },
         onError: (err) => console.error("PayPal Checkout Error:", err),
       })
       .render(paypalRef.current)
-      .then(() => setPaypalMounted(true));
-  }, [order, address, navigate, totalAmountAED]);
+      .then(() => setPaypalMounted(true))
+      .catch((err) => console.error("PayPal Render Error:", err));
+  }, [order, address, totalAmountAED]);
 
   if (!order) return null;
 
   return (
     <div className="min-h-screen bg-gray-50 px-6 lg:px-16 py-12">
       <div className="flex items-center justify-between mb-10">
-  <h1 className="text-3xl md:text-4xl font-serif">
-    Checkout
-  </h1>
-  <img
-    src={logo}
-    alt="Logo"
-    className="w-32 md:w-40 object-contain"
-  />
-</div>
-
+        <h1 className="text-3xl md:text-4xl font-serif">Checkout</h1>
+        <img src={logo} alt="Logo" className="w-32 md:w-40 object-contain" />
+      </div>
 
       <div className="grid md:grid-cols-2 gap-10">
         {/* ADDRESS FORM */}
@@ -130,6 +171,7 @@ export default function Checkout() {
                 value={address[field]}
                 onChange={handleChange}
                 className="w-full p-3 border border-gray-300 rounded-lg focus:border-black outline-none transition"
+                required
               />
             ))}
           </div>
@@ -143,7 +185,6 @@ export default function Checkout() {
         <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-200 flex flex-col">
           <h2 className="text-xl font-semibold mb-6">Order Summary</h2>
 
-          {/* Order details */}
           <div className="space-y-1 text-gray-700">
             <div className="mt-2">
               <span className="font-semibold">Sizes & Quantities:</span>
@@ -211,6 +252,15 @@ export default function Checkout() {
               ></div>
             )}
           </div>
+
+          {/* Demo Payment Button */}
+          <button
+            disabled={!isAddressComplete}
+            onClick={() => handleSubmitOrder("DEMO_PAYMENT_ID")}
+            className="mt-6 bg-blue-600 text-white py-3 rounded-xl text-lg hover:bg-blue-700 disabled:opacity-50"
+          >
+            Demo Payment
+          </button>
         </div>
       </div>
     </div>
