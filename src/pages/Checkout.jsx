@@ -1,19 +1,25 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import logo from "../assets/logo.png";
-// Assuming you have a file that defines the backend URL
-// e.g., export default "http://localhost:5000"
 import SERVER_BASE_URL from "../services/serverURL"; 
-
 
 export default function Checkout() {
   const location = useLocation();
   const navigate = useNavigate();
   const paypalRef = useRef(null);
 
-  const order = location.state;
-  const deliveryCharge = 29;
+  // Try to get order from location state, fallback to localStorage
+  const [order, setOrder] = useState(() => {
+    const locOrder = location.state;
+    if (locOrder) {
+      localStorage.setItem("currentOrder", JSON.stringify(locOrder));
+      return locOrder;
+    }
+    const saved = localStorage.getItem("currentOrder");
+    return saved ? JSON.parse(saved) : null;
+  });
 
+  const deliveryCharge = 29;
   const [address, setAddress] = useState({
     name: "",
     phone: "",
@@ -21,14 +27,11 @@ export default function Checkout() {
     city: "",
     emirate: "",
   });
-
   const [imagePreviews, setImagePreviews] = useState([]);
   const [isAddressComplete, setIsAddressComplete] = useState(false);
   const [paypalMounted, setPaypalMounted] = useState(false);
-  
-  // Use the imported constant
-  const BACKEND_URL = SERVER_BASE_URL; 
 
+  const BACKEND_URL = SERVER_BASE_URL; 
   const AEDtoUSD = 0.27;
   const totalAmountAED = order ? order.totalAmount + deliveryCharge : 0;
 
@@ -45,20 +48,20 @@ export default function Checkout() {
     setIsAddressComplete(allFilled);
   }, [address]);
 
-  // Generate image previews from actual files
+  // Generate image previews (handles File or URLs)
   useEffect(() => {
     if (!order?.images) return;
-
     const previews = order.images
       .map((imgObj) => {
         if (!imgObj) return null;
         if (imgObj.file instanceof File || imgObj.file instanceof Blob) {
           return URL.createObjectURL(imgObj.file);
         }
+        // fallback if image is URL only
+        if (imgObj.url) return imgObj.url;
         return null;
       })
       .filter(Boolean);
-
     setImagePreviews(previews);
 
     return () => {
@@ -68,8 +71,8 @@ export default function Checkout() {
     };
   }, [order]);
 
-  // Submit order with actual image files
-  const handleSubmitOrder = async (paymentId = null) => {
+  // Submit order
+  const handleSubmitOrder = async (paymentId = "DEMO_PAYMENT_ID") => {
     if (!order) return;
 
     const formData = new FormData();
@@ -78,11 +81,15 @@ export default function Checkout() {
     formData.append("discountPercent", order.discountPercent || 0);
     formData.append("promoCode", order.promoCode || "");
 
-    // Append files and their metadata (quantity/size) separately
     order.images.forEach((img, index) => {
-      formData.append("images", img.file, img.file.name); 
-      formData.append(`quantity_${index}`, img.quantity); 
-      formData.append(`size_${index}`, img.size);         
+      // If img.file exists, send it. Otherwise, fallback to URL string
+      if (img.file) {
+        formData.append("images", img.file, img.file.name);
+      } else if (img.url) {
+        formData.append("imageUrls", img.url); // your backend should handle this
+      }
+      formData.append(`quantity_${index}`, img.quantity);
+      formData.append(`size_${index}`, img.size);
     });
 
     Object.entries(address).forEach(([key, value]) => {
@@ -96,15 +103,16 @@ export default function Checkout() {
         method: "POST",
         body: formData,
       });
-
       const data = await res.json();
       console.log("Order submitted:", data);
-      
+
       if (res.ok) {
+        // Clear saved order
+        localStorage.removeItem("currentOrder");
         navigate("/success", { state: { order, address, paymentId } });
       } else {
-         console.error("Order submission failed on server:", data);
-         alert("Order submission failed. Please check the console for details.");
+        console.error("Order submission failed:", data);
+        alert("Order submission failed. Check console for details.");
       }
     } catch (err) {
       console.error("Error submitting order:", err);
@@ -112,30 +120,16 @@ export default function Checkout() {
     }
   };
 
-
-  // PayPal button setup
+  // PayPal button setup (optional)
   useEffect(() => {
     if (!window.paypal || !order || (paypalRef.current && paypalRef.current.children.length > 0)) return;
 
     window.paypal
       .Buttons({
-        style: {
-          layout: "vertical",
-          color: "gold",
-          shape: "rect",
-          label: "paypal",
-        },
+        style: { layout: "vertical", color: "gold", shape: "rect", label: "paypal" },
         createOrder: (_, actions) =>
           actions.order.create({
-            purchase_units: [
-              {
-                amount: {
-                  value: (totalAmountAED * AEDtoUSD).toFixed(2),
-                  currency_code: "USD",
-                },
-                description: `Photo order - AED ${totalAmountAED}`,
-              },
-            ],
+            purchase_units: [{ amount: { value: (totalAmountAED * AEDtoUSD).toFixed(2), currency_code: "USD" }, description: `Photo order - AED ${totalAmountAED}` }],
           }),
         onApprove: async (_, actions) => {
           const details = await actions.order.capture();
@@ -176,84 +170,46 @@ export default function Checkout() {
             ))}
           </div>
           <p className="mt-4 text-sm text-gray-500">
-            Delivery charge of <b>AED {deliveryCharge}</b> will be added to your
-            order.
+            Delivery charge of <b>AED {deliveryCharge}</b> will be added to your order.
           </p>
         </div>
 
         {/* ORDER SUMMARY */}
         <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-200 flex flex-col">
           <h2 className="text-xl font-semibold mb-6">Order Summary</h2>
-
           <div className="space-y-1 text-gray-700">
             <div className="mt-2">
               <span className="font-semibold">Sizes & Quantities:</span>
               <ul className="list-disc list-inside text-gray-600">
                 {order.images.map((img, idx) => (
-                  <li key={idx}>
-                    {img.size} x {img.quantity}
-                  </li>
+                  <li key={idx}>{img.size} x {img.quantity}</li>
                 ))}
               </ul>
             </div>
-
-            <p>
-              <span className="font-semibold">Paper:</span> {order.paperType}
-            </p>
-            <p>
-              <span className="font-semibold">Images:</span> {order.images.length}
-            </p>
+            <p><span className="font-semibold">Paper:</span> {order.paperType}</p>
+            <p><span className="font-semibold">Images:</span> {order.images.length}</p>
           </div>
 
-          {/* Image previews */}
           <div className="flex gap-2 mt-4 overflow-x-auto py-2">
             {imagePreviews.map((src, idx) => (
-              <img
-                key={idx}
-                src={src}
-                alt={`preview-${idx}`}
-                className="w-16 h-16 object-cover rounded-lg border border-gray-300"
-              />
+              <img key={idx} src={src} alt={`preview-${idx}`} className="w-16 h-16 object-cover rounded-lg border border-gray-300" />
             ))}
           </div>
 
-          {/* Pricing */}
           <div className="mt-6 border-t pt-4 border-gray-200">
-            <div className="flex justify-between text-gray-700 mb-1">
-              <span>Subtotal:</span>
-              <span>AED {order.totalAmount}</span>
-            </div>
-            <div className="flex justify-between text-gray-700 mb-1">
-              <span>Delivery:</span>
-              <span>AED {deliveryCharge}</span>
-            </div>
-            <div className="flex justify-between text-green-600 text-2xl font-semibold mt-2">
-              <span>Total:</span>
-              <span>AED {totalAmountAED}</span>
-            </div>
-            <p className="text-sm text-gray-500 mt-1">
-              Converted: USD {(totalAmountAED * AEDtoUSD).toFixed(2)}
-            </p>
+            <div className="flex justify-between text-gray-700 mb-1"><span>Subtotal:</span><span>AED {order.totalAmount}</span></div>
+            <div className="flex justify-between text-gray-700 mb-1"><span>Delivery:</span><span>AED {deliveryCharge}</span></div>
+            <div className="flex justify-between text-green-600 text-2xl font-semibold mt-2"><span>Total:</span><span>AED {totalAmountAED}</span></div>
+            <p className="text-sm text-gray-500 mt-1">Converted: USD {(totalAmountAED * AEDtoUSD).toFixed(2)}</p>
           </div>
 
           {/* PayPal */}
           <div className="relative mt-8 w-full">
-            <div
-              ref={paypalRef}
-              className={`transition-opacity duration-300 ${
-                paypalMounted && !isAddressComplete ? "opacity-50" : ""
-              }`}
-            ></div>
-
-            {paypalMounted && !isAddressComplete && (
-              <div
-                className="absolute inset-0 bg-transparent cursor-not-allowed"
-                title="Please fill all address fields to enable payment"
-              ></div>
-            )}
+            <div ref={paypalRef} className={`transition-opacity duration-300 ${paypalMounted && !isAddressComplete ? "opacity-50" : ""}`}></div>
+            {paypalMounted && !isAddressComplete && <div className="absolute inset-0 bg-transparent cursor-not-allowed" title="Fill all address fields first"></div>}
           </div>
 
-          {/* Demo Payment Button */}
+          {/* Working Demo Payment */}
           <button
             disabled={!isAddressComplete}
             onClick={() => handleSubmitOrder("DEMO_PAYMENT_ID")}
