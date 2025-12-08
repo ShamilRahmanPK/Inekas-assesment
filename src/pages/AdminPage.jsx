@@ -9,13 +9,77 @@ import {
   FaTimes,
   FaHome,
 } from "react-icons/fa";
-import { useNavigate } from "react-router-dom";
+
 import SERVER_BASE_URL from "../services/serverURL";
+import { useNavigate } from "react-router";
 
-// --- ImageModal component remains the same ---
+// --- 1. Modal Component (Inline) ---
+const ImageModal = ({ images, onClose }) => {
+  if (!images || images.length === 0) return null;
 
+  const handleDownload = (fullUrl, name) => {
+    const link = document.createElement("a");
+    link.href = fullUrl;
+    link.download = name || "image.jpg";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  console.log(images);
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+        {/* Modal Header */}
+        <div className="sticky top-0 bg-white p-4 border-b flex justify-between items-center">
+          <h2 className="text-xl font-semibold">
+            Order Images ({images.length} Files)
+          </h2>
+          <button
+            onClick={onClose}
+            className="text-gray-500 hover:text-gray-800"
+          >
+            <FaTimes size={24} />
+          </button>
+        </div>
+
+        {/* Modal Content - Image Grid */}
+        <div className="p-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+          {images.map((img, idx) => {
+            const fullImageUrl = `${SERVER_BASE_URL}/${img.path}`;
+
+            return (
+              <div
+                key={idx}
+                className="flex flex-col items-center border rounded-lg p-2 bg-gray-50"
+              >
+                <img
+                  src={fullImageUrl}
+                  alt={img.originalname || `image-${idx}`}
+                  className="w-full h-32 object-cover rounded-md mb-2"
+                />
+                <p className="text-xs text-gray-700 text-center mb-1">
+                  Size : {img._doc.size} Quantity : {img._doc.quantity}
+                </p>
+                <button
+                  onClick={() => window.open(fullImageUrl, "_blank")}
+                  className="w-full bg-blue-500 text-white py-1 rounded-md text-sm hover:bg-blue-600 transition flex items-center justify-center gap-1"
+                >
+                  <FaDownload /> View
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// --- 2. AdminPage Component ---
 function AdminPage() {
-  const navigate = useNavigate(); // Added useNavigate
+    const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState("orders");
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -46,8 +110,13 @@ function AdminPage() {
     fetchOrders();
   }, [activeTab]);
 
-  const openImageModal = (images) => setSelectedOrderImages(images);
-  const closeImageModal = () => setSelectedOrderImages(null);
+  const openImageModal = (images) => {
+    setSelectedOrderImages(images);
+  };
+
+  const closeImageModal = () => {
+    setSelectedOrderImages(null);
+  };
 
   const renderOrdersTable = () => {
     if (loading) return <p>Loading orders...</p>;
@@ -78,8 +147,13 @@ function AdminPage() {
                 </td>
                 <td className="p-2 border">{`${order.street}, ${order.city}, ${order.emirate}`}</td>
                 <td className="p-2 border">{order.paperType}</td>
-                <td className="p-2 border font-semibold">{order.totalAmount}</td>
+                <td className="p-2 border font-semibold">
+                  {order.totalAmount}
+                </td>
+
                 <td className="p-2 border">{order.paymentId}</td>
+
+                {/* Files button to open modal */}
                 <td className="p-2 border">
                   <button
                     onClick={() => openImageModal(order.images)}
@@ -107,6 +181,7 @@ function AdminPage() {
       case "users":
         return <div>Users management will be displayed here</div>;
       case "logout":
+        // Add actual logout logic here
         return <div>Logging out...</div>;
       default:
         return null;
@@ -138,20 +213,25 @@ function AdminPage() {
       {/* Main Content */}
       <div className="flex-1 p-8">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-semibold capitalize">{activeTab}</h1>
-          {/* Go to Home Button */}
-          <button
-            onClick={() => navigate("/")}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-          >
-            <FaHome /> Home
-          </button>
+            <h1 className="text-3xl font-semibold mb-6 capitalize">{activeTab}</h1>
+            {/* Go to Home Button */}
+              <button
+                onClick={() => navigate("/")}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+              >
+                <FaHome /> Home
+              </button>
         </div>
-        <div className="bg-white p-6 rounded-2xl shadow-md">{renderContent()}</div>
+
+        <div className="bg-white p-6 rounded-2xl shadow-md">
+          {renderContent()}
+        </div>
       </div>
 
       {/* Image Modal Render */}
-      {selectedOrderImages && <ImageModal images={selectedOrderImages} onClose={closeImageModal} />}
+      {selectedOrderImages && (
+        <ImageModal images={selectedOrderImages} onClose={closeImageModal} />
+      )}
     </div>
   );
 }
