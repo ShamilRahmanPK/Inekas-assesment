@@ -57,14 +57,15 @@ export default function StandardPhotoPrints() {
   };
 
   return (
-    <div className="bg-white px-16 py-10 max-w-[1400px] mx-auto">
-      <p className="text-xs tracking-widest text-gray-500 mb-8 uppercase">
+    <div className="bg-white px-4 sm:px-8 lg:px-16 py-10 max-w-[1400px] mx-auto">
+      <p className="text-xs tracking-widest text-gray-500 mb-6 sm:mb-8 uppercase">
         HOME &gt; STANDARD SIZE PHOTO PRINTS
       </p>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16">
+        
         {/* LEFT IMAGE */}
-        <div className="bg-gray-100 rounded-sm overflow-hidden h-[550px] flex items-center justify-center">
+        <div className="bg-gray-100 rounded-sm overflow-hidden h-[350px] sm:h-[450px] lg:h-[550px] flex items-center justify-center">
           <img
             src={previewImage}
             alt="preview"
@@ -74,13 +75,13 @@ export default function StandardPhotoPrints() {
 
         {/* RIGHT PANEL */}
         <div>
-          <h1 className="text-[48px] font-serif leading-tight mb-4">
+          <h1 className="text-[32px] sm:text-[40px] lg:text-[48px] font-serif leading-tight mb-4">
             Standard Size Photo Prints
           </h1>
 
-          <div className="flex items-center gap-3 mb-6">
-            <div className="flex text-[#b99a6d] text-xl tracking-wider">★★★★★</div>
-            <span className="text-gray-500 text-sm">1084 reviews</span>
+          <div className="flex items-center gap-2 sm:gap-3 mb-6">
+            <div className="flex text-[#b99a6d] text-xl sm:text-2xl">★★★★★</div>
+            <span className="text-gray-500 text-xs sm:text-sm">1084 reviews</span>
           </div>
 
           <p className="text-lg mb-6">
@@ -93,12 +94,12 @@ export default function StandardPhotoPrints() {
               Print Size: <span className="font-normal">{selectedSize} in</span>
             </p>
 
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
               {sizes.map((size) => (
                 <button
                   key={size}
                   onClick={() => setSelectedSize(size)}
-                  className={`relative border px-6 py-2 text-sm rounded-sm transition ${
+                  className={`relative border px-4 py-2 text-sm rounded-sm transition ${
                     selectedSize === size
                       ? "border-black font-semibold"
                       : "border-gray-300 hover:border-gray-500"
@@ -126,7 +127,7 @@ export default function StandardPhotoPrints() {
                 <button
                   key={paper}
                   onClick={() => setSelectedPaper(paper)}
-                  className={`border px-6 py-2 text-sm rounded-sm transition ${
+                  className={`border px-5 py-2 text-sm rounded-sm transition ${
                     selectedPaper === paper
                       ? "border-black font-semibold"
                       : "border-gray-300 hover:border-gray-500"
@@ -149,7 +150,7 @@ export default function StandardPhotoPrints() {
                 <button
                   key={material}
                   onClick={() => setSelectedMaterial(material)}
-                  className={`border px-6 py-2 text-sm rounded-sm transition ${
+                  className={`border px-5 py-2 text-sm rounded-sm transition ${
                     selectedMaterial === material
                       ? "border-black font-semibold"
                       : "border-gray-300 hover:border-gray-500"
@@ -163,7 +164,7 @@ export default function StandardPhotoPrints() {
 
           <button
             onClick={handleCreateNow}
-            className="w-full bg-black text-white py-4 tracking-widest text-sm font-semibold"
+            className="w-full bg-black text-white py-4 tracking-widest text-sm font-semibold mt-4"
           >
             CREATE NOW
           </button>
