@@ -4,6 +4,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { Cropper } from "react-advanced-cropper";
 import "react-advanced-cropper/dist/style.css";
 import { MdUndo } from "react-icons/md";
+import logo from "../assets/logo.png";
 
 export default function UploadPhotos({ onNext }) {
   const navigate = useNavigate();
@@ -101,7 +102,9 @@ export default function UploadPhotos({ onNext }) {
 
     setImages((prev) =>
       prev.map((img) =>
-        img.id === editingImage.id ? { ...img, editedPreview: croppedImage } : img
+        img.id === editingImage.id
+          ? { ...img, editedPreview: croppedImage }
+          : img
       )
     );
     setEditingImage(null);
@@ -145,14 +148,21 @@ export default function UploadPhotos({ onNext }) {
 
   return (
     <div className="bg-white min-h-screen px-4 md:px-10 py-10 pb-40">
-      <h1 className="text-4xl font-serif mb-6 text-center md:text-left">
-        Upload Photos
-      </h1>
+      <div className="flex items-center justify-between mb-10">
+        <h1 className="text-4xl font-serif mb-6 text-left">
+          Upload Photos
+        </h1>
+        <img
+          src={logo}
+          alt="Logo"
+          className="w-32 md:w-40 object-contain"
+        />
+      </div>
 
       <div className="flex flex-col md:flex-row gap-10">
         {/* LEFT */}
         <div className="flex-1">
-          <label className="w-full h-[200px] md:h-[220px] border-2 border-dashed border-gray-400 flex flex-col items-center justify-center cursor-pointer hover:border-black rounded-lg transition shadow-sm hover:shadow-md">
+          <label className="w-full h-[200px] md:h-[220px] border-2 border-dashed border-gray-400 flex flex-col items-center justify-center cursor-pointer hover:border-black transition shadow-sm hover:shadow-md">
             <input
               type="file"
               multiple
@@ -168,11 +178,11 @@ export default function UploadPhotos({ onNext }) {
               {images.map((img, index) => (
                 <div
                   key={img.id}
-                  className="relative rounded-lg overflow-hidden shadow-md bg-gray-100 p-2"
+                  className="relative overflow-hidden shadow-md bg-gray-100 p-2"
                 >
                   <div
                     style={{ aspectRatio: getAspect(img.size) }}
-                    className="overflow-hidden rounded cursor-pointer"
+                    className="overflow-hidden cursor-pointer"
                     onClick={() => openEditModal(img)}
                   >
                     <img
@@ -183,7 +193,7 @@ export default function UploadPhotos({ onNext }) {
 
                   <button
                     onClick={() => removeImage(index)}
-                    className="absolute top-2 right-2 bg-black text-white text-xs px-2 py-1 rounded"
+                    className="absolute top-2 right-2 bg-black text-white text-xs px-2 py-1"
                   >
                     ✕
                   </button>
@@ -194,7 +204,7 @@ export default function UploadPhotos({ onNext }) {
                         e.stopPropagation();
                         revertImage(img.id);
                       }}
-                      className="absolute top-2 left-2 bg-black text-white text-xs px-2 py-1 rounded"
+                      className="absolute top-2 left-2 bg-black text-white text-xs px-2 py-1"
                     >
                       <MdUndo size={18} />
                     </button>
@@ -212,7 +222,7 @@ export default function UploadPhotos({ onNext }) {
                           )
                         )
                       }
-                      className="mt-2 w-full border text-sm rounded px-2 py-1"
+                      className="mt-2 w-full border text-sm px-2 py-1"
                     >
                       {sizes.map((s) => (
                         <option key={s} value={s}>
@@ -220,6 +230,7 @@ export default function UploadPhotos({ onNext }) {
                         </option>
                       ))}
                     </select>
+
                     <p className="text-xs my-2">Quantity</p>
                     <select
                       value={img.quantity}
@@ -232,7 +243,7 @@ export default function UploadPhotos({ onNext }) {
                           )
                         )
                       }
-                      className="w-full border text-sm rounded px-2 py-1"
+                      className="w-full border text-sm px-2 py-1"
                     >
                       {quantities.map((q) => (
                         <option key={q} value={q}>
@@ -253,7 +264,7 @@ export default function UploadPhotos({ onNext }) {
 
         {/* RIGHT PANEL */}
         <div className="w-full md:w-[350px] flex flex-col gap-6">
-          <div className="p-6 border bg-gray-50 rounded-lg shadow space-y-6">
+          <div className="p-6 border bg-gray-50 shadow space-y-6">
             <div>
               <p className="font-semibold mb-2">Default Size</p>
               <div className="flex flex-wrap gap-3">
@@ -261,7 +272,7 @@ export default function UploadPhotos({ onNext }) {
                   <button
                     key={s}
                     onClick={() => setDefaultSize(s)}
-                    className={`px-4 py-2 border rounded-lg text-sm ${
+                    className={`px-4 py-2 border text-sm ${
                       defaultSize === s
                         ? "bg-black text-white"
                         : "bg-white border-gray-300"
@@ -280,7 +291,7 @@ export default function UploadPhotos({ onNext }) {
                   <button
                     key={p}
                     onClick={() => setPaperType(p)}
-                    className={`px-4 py-2 border rounded-lg text-sm ${
+                    className={`px-4 py-2 border text-sm ${
                       paperType === p
                         ? "bg-black text-white"
                         : "bg-white border-gray-300"
@@ -301,11 +312,11 @@ export default function UploadPhotos({ onNext }) {
                 value={promoCode}
                 onChange={(e) => setPromoCode(e.target.value)}
                 placeholder="Enter promo code"
-                className="flex-1 border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-black"
+                className="flex-1 border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-black"
               />
               <button
                 onClick={handleApplyPromo}
-                className="bg-black text-white px-4 py-2 rounded font-semibold hover:bg-gray-900"
+                className="bg-black text-white px-4 py-2 font-semibold hover:bg-gray-900"
               >
                 APPLY
               </button>
@@ -324,8 +335,7 @@ export default function UploadPhotos({ onNext }) {
       <div className="fixed bottom-0 left-0 w-full bg-gray-100 px-4 md:px-10 py-4 border-t shadow-[0_-3px_8px_rgba(0,0,0,0.15)] z-50">
         <div className="max-w-[1200px] mx-auto flex justify-between items-center">
           <h2 className="text-xl font-bold">
-            Total Amount:{" "}
-            <span className="text-green-600">AED {totalAmount}</span>
+            Total Amount: <span className="text-green-600">AED {totalAmount}</span>
             <span className="text-xs text-gray-500 ml-2">
               + Delivery charge AED 29 applies within UAE
             </span>
@@ -333,7 +343,7 @@ export default function UploadPhotos({ onNext }) {
           <button
             disabled={images.length === 0}
             onClick={goToAddressPage}
-            className="bg-black text-white px-6 py-3 rounded-lg disabled:opacity-50"
+            className="bg-black text-white px-6 py-3 disabled:opacity-50"
           >
             NEXT
           </button>
@@ -343,9 +353,9 @@ export default function UploadPhotos({ onNext }) {
       {/* EDIT MODAL */}
       {editingImage && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl overflow-hidden border border-gray-200">
-            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-              <h2 className="text-xl md:text-2xl font-serif">Edit Image</h2>
+          <div className="bg-white shadow-xl w-full max-w-3xl overflow-hidden border border-gray-200">
+            {/* Close Button */}
+            <div className="px-6 py-4 border-b border-gray-100 flex justify-end">
               <button
                 onClick={() => setEditingImage(null)}
                 className="text-gray-500 hover:text-black text-2xl"
@@ -354,6 +364,7 @@ export default function UploadPhotos({ onNext }) {
               </button>
             </div>
 
+            {/* Cropper */}
             <div className="relative w-full h-[320px] md:h-[420px] bg-gray-50 flex items-center justify-center">
               <Cropper
                 ref={cropperRef}
@@ -363,16 +374,17 @@ export default function UploadPhotos({ onNext }) {
               />
             </div>
 
+            {/* Action Buttons */}
             <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3">
               <button
                 onClick={() => setEditingImage(null)}
-                className="px-5 py-2 rounded-xl border border-gray-300 text-gray-600 hover:bg-gray-100"
+                className="px-5 py-2 border border-gray-300 text-gray-600 hover:bg-gray-100"
               >
                 Cancel
               </button>
               <button
                 onClick={applyEdit}
-                className="px-5 py-2 rounded-xl bg-black text-white hover:bg-gray-900 shadow-md"
+                className="px-5 py-2 bg-black text-white hover:bg-gray-900 shadow-md"
               >
                 Apply
               </button>

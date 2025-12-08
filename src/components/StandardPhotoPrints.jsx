@@ -15,7 +15,7 @@ export default function StandardPhotoPrints() {
   const [selectedPaper, setSelectedPaper] = useState("Luster");
 
   const sizes = ["3.5X5", "4X6", "5X7", "8X10", "4X4", "8X8"];
-  const papers = ["Luster", "Glossy"]; // only these two papers
+  const papers = ["Luster", "Glossy"]; 
 
   const imageMap = {
     "3.5X5": img35x5,

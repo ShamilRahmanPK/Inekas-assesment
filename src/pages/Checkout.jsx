@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import logo from "../assets/logo.png";
 
 export default function Checkout() {
   const location = useLocation();
@@ -7,7 +8,7 @@ export default function Checkout() {
   const paypalRef = useRef(null);
 
   const order = location.state;
-  const deliveryCharge = 29; // AED
+  const deliveryCharge = 29; 
 
   const [address, setAddress] = useState({
     name: "",
@@ -18,18 +19,27 @@ export default function Checkout() {
   });
 
   const [imagePreviews, setImagePreviews] = useState([]);
+  const [isAddressComplete, setIsAddressComplete] = useState(false);
+  const [paypalMounted, setPaypalMounted] = useState(false);
 
   const AEDtoUSD = 0.27;
   const totalAmountAED = order ? order.totalAmount + deliveryCharge : 0;
-  const totalAmountUSD = totalAmountAED.toFixed(2) * AEDtoUSD;
+
 
   useEffect(() => {
     if (!order) navigate("/upload-photos");
   }, [order, navigate]);
 
+
   const handleChange = (e) => {
     setAddress({ ...address, [e.target.name]: e.target.value });
   };
+
+
+  useEffect(() => {
+    const allFilled = Object.values(address).every((val) => val.trim() !== "");
+    setIsAddressComplete(allFilled);
+  }, [address]);
 
   // Generate image previews
   useEffect(() => {
@@ -57,8 +67,7 @@ export default function Checkout() {
 
   // PayPal button setup
   useEffect(() => {
-    if (!window.paypal || !order || paypalRef.current.children.length > 0)
-      return;
+    if (!window.paypal || !order || paypalRef.current.children.length > 0) return;
 
     window.paypal
       .Buttons({
@@ -88,16 +97,25 @@ export default function Checkout() {
         },
         onError: (err) => console.error("PayPal Checkout Error:", err),
       })
-      .render(paypalRef.current);
+      .render(paypalRef.current)
+      .then(() => setPaypalMounted(true));
   }, [order, address, navigate, totalAmountAED]);
 
   if (!order) return null;
 
   return (
     <div className="min-h-screen bg-gray-50 px-6 lg:px-16 py-12">
-      <h1 className="text-3xl md:text-4xl font-serif mb-10 text-center md:text-left">
-        Checkout
-      </h1>
+      <div className="flex items-center justify-between mb-10">
+  <h1 className="text-3xl md:text-4xl font-serif">
+    Checkout
+  </h1>
+  <img
+    src={logo}
+    alt="Logo"
+    className="w-32 md:w-40 object-contain"
+  />
+</div>
+
 
       <div className="grid md:grid-cols-2 gap-10">
         {/* ADDRESS FORM */}
@@ -142,8 +160,7 @@ export default function Checkout() {
               <span className="font-semibold">Paper:</span> {order.paperType}
             </p>
             <p>
-              <span className="font-semibold">Images:</span>{" "}
-              {order.images.length}
+              <span className="font-semibold">Images:</span> {order.images.length}
             </p>
           </div>
 
@@ -179,7 +196,21 @@ export default function Checkout() {
           </div>
 
           {/* PayPal */}
-          <div className="mt-8 w-full" ref={paypalRef}></div>
+          <div className="relative mt-8 w-full">
+            <div
+              ref={paypalRef}
+              className={`transition-opacity duration-300 ${
+                paypalMounted && !isAddressComplete ? "opacity-50" : ""
+              }`}
+            ></div>
+
+            {paypalMounted && !isAddressComplete && (
+              <div
+                className="absolute inset-0 bg-transparent cursor-not-allowed"
+                title="Please fill all address fields to enable payment"
+              ></div>
+            )}
+          </div>
         </div>
       </div>
     </div>
