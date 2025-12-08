@@ -5,7 +5,7 @@ import img35x5 from "../assets/3.5x5-prev.webp";
 import img4x6 from "../assets/4x6-prev.jpg";
 import img5x7 from "../assets/5x7-prev.jpg";
 import img8x10 from "../assets/8x10-prev.jpg";
-import img4x4 from "../assets/4x4-prev.jpg";
+import img4x4 from "../assets/4X4-prev.jpg";
 import img8x8 from "../assets/8x8-prev.webp";
 
 export default function StandardPhotoPrints() {
@@ -13,11 +13,9 @@ export default function StandardPhotoPrints() {
 
   const [selectedSize, setSelectedSize] = useState("4X6");
   const [selectedPaper, setSelectedPaper] = useState("Luster");
-  const [selectedMaterial, setSelectedMaterial] = useState("Standard");
 
   const sizes = ["3.5X5", "4X6", "5X7", "8X10", "4X4", "8X8"];
-  const papers = ["Luster", "Glossy", "Matte", "Metallic", "Deep Matte", "Fine Art"];
-  const materials = ["Standard", "Canvas", "Metallic"];
+  const papers = ["Luster", "Glossy"]; // only these two papers
 
   const imageMap = {
     "3.5X5": img35x5,
@@ -39,9 +37,7 @@ export default function StandardPhotoPrints() {
     if (selectedSize === "4X4") price = 4;
     if (selectedSize === "8X8") price = 12;
 
-    if (selectedMaterial === "Canvas") price += 5;
     if (selectedPaper === "Glossy") price += 2;
-    if (selectedPaper === "Metallic") price += 3;
 
     return price;
   };
@@ -51,7 +47,6 @@ export default function StandardPhotoPrints() {
       state: {
         size: selectedSize,
         paperType: selectedPaper,
-        materialType: selectedMaterial,
       },
     });
   };
@@ -99,7 +94,7 @@ export default function StandardPhotoPrints() {
                 <button
                   key={size}
                   onClick={() => setSelectedSize(size)}
-                  className={`relative border px-4 py-2 text-sm rounded-sm transition ${
+                  className={`relative border px-4 py-2 text-sm rounded-sm transition cursor-pointer ${
                     selectedSize === size
                       ? "border-black font-semibold"
                       : "border-gray-300 hover:border-gray-500"
@@ -127,7 +122,7 @@ export default function StandardPhotoPrints() {
                 <button
                   key={paper}
                   onClick={() => setSelectedPaper(paper)}
-                  className={`border px-5 py-2 text-sm rounded-sm transition ${
+                  className={`border px-5 py-2 text-sm rounded-sm transition cursor-pointer ${
                     selectedPaper === paper
                       ? "border-black font-semibold"
                       : "border-gray-300 hover:border-gray-500"
@@ -139,32 +134,9 @@ export default function StandardPhotoPrints() {
             </div>
           </div>
 
-          {/* Material Type */}
-          <div className="mb-10">
-            <p className="font-semibold mb-3">
-              Material: <span className="font-normal underline">{selectedMaterial}</span>
-            </p>
-
-            <div className="flex flex-wrap gap-3">
-              {materials.map((material) => (
-                <button
-                  key={material}
-                  onClick={() => setSelectedMaterial(material)}
-                  className={`border px-5 py-2 text-sm rounded-sm transition ${
-                    selectedMaterial === material
-                      ? "border-black font-semibold"
-                      : "border-gray-300 hover:border-gray-500"
-                  }`}
-                >
-                  {material}
-                </button>
-              ))}
-            </div>
-          </div>
-
           <button
             onClick={handleCreateNow}
-            className="w-full bg-black text-white py-4 tracking-widest text-sm font-semibold mt-4"
+            className="w-full bg-black text-white py-4 tracking-widest text-sm font-semibold mt-4 cursor-pointer"
           >
             CREATE NOW
           </button>
