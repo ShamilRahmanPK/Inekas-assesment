@@ -320,79 +320,93 @@ export default function UploadPhotos({ onNext }) {
       </div>
 
       {editingImage && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white p-6 md:p-8 rounded-xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-auto">
-            <h2 className="text-xl md:text-2xl font-serif font-semibold mb-4 md:mb-6 text-center">
-              Edit Image
-            </h2>
+  <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div className="bg-white rounded-2xl shadow-[0_8px_40px_rgba(0,0,0,0.15)] w-full max-w-3xl overflow-hidden border border-gray-200">
 
-            <div className="relative w-full h-[250px] md:h-[400px] bg-gray-100 rounded-lg overflow-hidden">
-              <Cropper
-                image={
-                  editingImage.editedPreview || editingImage.originalPreview
-                }
-                crop={crop}
-                zoom={zoom}
-                rotation={rotation}
-                aspect={getAspect()}
-                onCropChange={setCrop}
-                onZoomChange={setZoom}
-                onRotationChange={setRotation}
-                onCropComplete={onCropComplete}
-              />
-            </div>
+      {/* Header */}
+      <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+        <h2 className="text-xl md:text-2xl font-serif tracking-wide">Edit Image</h2>
+        <button
+          onClick={() => setEditingImage(null)}
+          className="text-gray-500 hover:text-black text-2xl leading-none"
+        >
+          &times;
+        </button>
+      </div>
 
-            <div className="flex flex-col md:flex-row items-center justify-between gap-4 mt-4">
-              <div className="flex flex-col flex-1">
-                <label className="text-sm font-medium mb-1">Zoom</label>
-                <input
-                  type="range"
-                  min={1}
-                  max={3}
-                  step={0.01}
-                  value={zoom}
-                  onChange={(e) => setZoom(Number(e.target.value))}
-                  className="w-full"
-                />
-              </div>
+      {/* Cropper */}
+      <div className="relative w-full h-[260px] md:h-[420px] bg-gray-50">
+        <Cropper
+          image={editingImage.editedPreview || editingImage.originalPreview}
+          crop={crop}
+          zoom={zoom}
+          rotation={rotation}
+          aspect={getAspect()}
+          onCropChange={setCrop}
+          onZoomChange={setZoom}
+          onRotationChange={setRotation}
+          onCropComplete={onCropComplete}
+        />
+      </div>
 
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setRotation((prev) => prev - 90)}
-                  className="px-3 py-2 bg-gray-200 rounded shadow hover:bg-gray-300 transition"
-                >
-                  ⟲
-                </button>
-                <button
-                  onClick={() => setRotation((prev) => prev + 90)}
-                  className="px-3 py-2 bg-gray-200 rounded shadow hover:bg-gray-300 transition"
-                >
-                  ⟳
-                </button>
-                <span className="text-sm font-medium">
-                  Rotation: {rotation % 360}°
-                </span>
-              </div>
-            </div>
+      {/* Controls */}
+      <div className="px-6 py-5 space-y-6">
 
-            <div className="flex justify-between mt-4 md:mt-6 gap-4">
-              <button
-                onClick={() => setEditingImage(null)}
-                className="px-4 md:px-6 py-2 md:py-3 bg-gray-300 rounded-lg shadow hover:bg-gray-400 transition"
-              >
-                Cancel
-              </button>
-
-              <button
-                onClick={applyEdit}
-                className="px-4 md:px-6 py-2 md:py-3 bg-black text-white rounded-lg shadow hover:shadow-lg transition"
-              >
-                Apply
-              </button>
-            </div>
-          </div>
+        {/* Zoom */}
+        <div>
+          <label className="text-sm text-gray-600">Zoom</label>
+          <input
+            type="range"
+            min={1}
+            max={3}
+            step={0.01}
+            value={zoom}
+            onChange={(e) => setZoom(Number(e.target.value))}
+            className="w-full accent-black"
+          />
         </div>
-      )}
+
+        {/* Rotation */}
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setRotation((prev) => prev - 90)}
+            className="px-4 py-2 rounded-xl border border-gray-300 hover:border-black transition"
+          >
+            ⟲
+          </button>
+          <button
+            onClick={() => setRotation((prev) => prev + 90)}
+            className="px-4 py-2 rounded-xl border border-gray-300 hover:border-black transition"
+          >
+            ⟳
+          </button>
+          <span className="text-sm text-gray-600">
+            {rotation % 360}°
+          </span>
+        </div>
+
+      </div>
+
+      {/* Footer */}
+      <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3">
+        <button
+          onClick={() => setEditingImage(null)}
+          className="px-5 py-2 rounded-xl border border-gray-300 text-gray-600 hover:bg-gray-100 transition"
+        >
+          Cancel
+        </button>
+        <button
+          onClick={applyEdit}
+          className="px-5 py-2 rounded-xl bg-black text-white hover:bg-gray-900 transition shadow-md"
+        >
+          Apply
+        </button>
+      </div>
+
+    </div>
+  </div>
+)}
+
     </div>
   );
 }

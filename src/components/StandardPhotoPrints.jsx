@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import img35x5 from "../assets/3.5x5-prev.png";
+import img35x5 from "../assets/3.5x5-prev.webp";
 import img4x6 from "../assets/4x6-prev.jpg";
 import img5x7 from "../assets/5x7-prev.jpg";
 import img8x10 from "../assets/8x10-prev.jpg";
 import img4x4 from "../assets/4x4-prev.jpg";
-import img8x8 from "../assets/8x8-prev.png";
+import img8x8 from "../assets/8x8-prev.webp";
 
 export default function StandardPhotoPrints() {
   const navigate = useNavigate();
