@@ -29,7 +29,6 @@ export default function Checkout() {
     setAddress({ ...address, [e.target.name]: e.target.value });
   };
 
-
   useEffect(() => {
     if (!order?.images) return;
 
@@ -83,14 +82,15 @@ export default function Checkout() {
   if (!order) return null;
 
   return (
-    <div className="min-h-screen bg-white px-6 py-12">
-      <h1 className="text-3xl font-serif mb-6">Delivery & Payment</h1>
+    <div className="min-h-screen bg-white px-6 lg:px-16 py-12">
+      <h1 className="text-3xl md:text-4xl font-serif mb-10">Delivery & Payment</h1>
 
       <div className="grid md:grid-cols-2 gap-10">
-        {/* Address */}
-        <div className="bg-gray-50 p-6 rounded-lg shadow">
-          <h2 className="text-xl font-semibold mb-4">Delivery Address</h2>
-          <div className="space-y-4">
+        {/* Address Card */}
+        <div className="bg-white border border-gray-200 rounded-2xl p-8 shadow-[0_6px_20px_rgba(0,0,0,0.06)]">
+          <h2 className="text-xl font-semibold mb-6">Delivery Address</h2>
+
+          <div className="space-y-5">
             {["name", "phone", "street", "city", "emirate"].map((field) => (
               <input
                 key={field}
@@ -98,39 +98,44 @@ export default function Checkout() {
                 placeholder={field.toUpperCase()}
                 value={address[field]}
                 onChange={handleChange}
-                className="w-full p-3 border rounded"
+                className="w-full p-3 border border-gray-300 rounded-lg focus:border-black outline-none transition"
               />
             ))}
           </div>
         </div>
 
         {/* Order Summary */}
-        <div className="bg-gray-50 p-6 rounded-lg shadow flex flex-col items-start">
-          <h2 className="text-xl font-semibold mb-4 self-start">Order Summary</h2>
+        <div className="bg-white border border-gray-200 rounded-2xl p-8 shadow-[0_6px_20px_rgba(0,0,0,0.06)] flex flex-col">
+          <h2 className="text-xl font-semibold mb-6">Order Summary</h2>
 
-          <p>Size: {order.size}</p>
-          <p>Paper: {order.paperType}</p>
-          <p>Material: {order.materialType}</p>
-          <p>Images: {order.images.length}</p>
+          <div className="space-y-1 text-gray-700">
+            <p><span className="font-semibold">Size:</span> {order.size}</p>
+            <p><span className="font-semibold">Paper:</span> {order.paperType}</p>
+            <p><span className="font-semibold">Material:</span> {order.materialType}</p>
+            <p><span className="font-semibold">Images:</span> {order.images.length}</p>
+          </div>
 
-          {/* Image Previews */}
-          <div className="flex gap-2 mt-2 overflow-x-auto self-end">
+          {/* Preview Images */}
+          <div className="flex gap-2 mt-4 overflow-x-auto py-2">
             {imagePreviews.map((src, idx) => (
               <img
                 key={idx}
                 src={src}
                 alt={`preview-${idx}`}
-                className="w-16 h-16 object-cover rounded border"
+                className="w-16 h-16 object-cover rounded-lg border border-gray-300"
               />
             ))}
           </div>
 
-          <p className="text-2xl font-bold text-green-600 mt-4">
-            AED {order.totalAmount}
-          </p>
+          <div className="mt-6">
+            <p className="text-3xl font-semibold text-green-600">
+              AED {order.totalAmount}
+            </p>
+            <p className="text-sm text-gray-600">Converted: USD {totalAmountUSD}</p>
+          </div>
 
-          {/* PayPal btn */}
-          <div className="mt-6 w-full" ref={paypalRef}></div>
+          {/* PayPal Button */}
+          <div className="mt-8 w-full" ref={paypalRef}></div>
         </div>
       </div>
     </div>
