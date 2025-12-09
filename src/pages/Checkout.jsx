@@ -4,7 +4,13 @@ import logo from "../assets/logo.png";
 import SERVER_BASE_URL from "../services/serverURL";
 
 // Leaflet
-import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from "react-leaflet";
+import {
+  MapContainer,
+  TileLayer,
+  Marker,
+  useMapEvents,
+  useMap,
+} from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 
@@ -29,7 +35,7 @@ export default function Checkout() {
 
   const [mapLocation, setMapLocation] = useState({
     lat: 25.2048,
-    lng: 55.2708, 
+    lng: 55.2708,
   });
 
   // Order info
@@ -152,7 +158,7 @@ export default function Checkout() {
     if (paymentId) formData.append("paymentId", paymentId);
 
     try {
-      const res = await fetch(`${BACKEND_URL}/api/order`, {
+      const res = await fetch(`${SERVER_BASE_URL}/api/orders`, {
         method: "POST",
         body: formData,
       });
@@ -210,7 +216,6 @@ export default function Checkout() {
   }, [order, totalAmountAED]);
 
   if (!order) return null;
-
 
   function LocationMarker({ setLocation, mapLocation }) {
     const map = useMap();
@@ -280,7 +285,9 @@ export default function Checkout() {
               <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
               <LocationMarker
                 mapLocation={mapLocation}
-                setLocation={(loc) => setAddress((prev) => ({ ...prev, ...loc }))}
+                setLocation={(loc) =>
+                  setAddress((prev) => ({ ...prev, ...loc }))
+                }
               />
             </MapContainer>
           </div>
@@ -333,7 +340,9 @@ export default function Checkout() {
 
             <div className="space-y-1 text-gray-700">
               <div className="mt-2">
-                <span className="font-semibold">Sizes, Quantities & Paper:</span>
+                <span className="font-semibold">
+                  Sizes, Quantities & Paper:
+                </span>
                 <ul className="list-disc list-inside text-gray-600">
                   {order.images.map((img, idx) => (
                     <li key={idx}>
@@ -358,7 +367,13 @@ export default function Checkout() {
             <div className="mt-6 border-t pt-4 border-gray-200">
               <div className="flex justify-between mb-1">
                 <span>Subtotal:</span>
-                <span>AED {order.images.reduce((sum, img) => sum + calculateImagePrice(img), 0)}</span>
+                <span>
+                  AED{" "}
+                  {order.images.reduce(
+                    (sum, img) => sum + calculateImagePrice(img),
+                    0
+                  )}
+                </span>
               </div>
               <div className="flex justify-between mb-1">
                 <span>Delivery:</span>
