@@ -1,6 +1,10 @@
+import { useNavigate } from "react-router";
 import logo from "../assets/logo.png"
+import React from "react";
+import { FaHome } from "react-icons/fa";
 
 function Header() {
+  const navigate = useNavigate()
   return (
     <>
       <div className="header flex items-center justify-between px-10 py-4 border-b">
@@ -36,9 +40,13 @@ function Header() {
 
         {/* RIGHT - AUTH */}
         <div className="auth flex-1 flex justify-end items-center gap-4">
-          <a href="#" className="text-sm font-medium">
-            Sign In
-          </a>
+          {/* Go to Home Button */}
+              <button
+                onClick={() => navigate("/admin")}
+                className="text-sm"
+              >
+                SignIN
+              </button>
           <i className="fa fa-shopping-bag text-black text-lg"></i>
         </div>
       </div>

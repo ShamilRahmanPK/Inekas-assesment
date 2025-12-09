@@ -9,62 +9,46 @@ import {
   FaTimes,
   FaHome,
 } from "react-icons/fa";
-
 import SERVER_BASE_URL from "../services/serverURL";
 import { useNavigate } from "react-router";
 
-// --- 1. Modal Component (Inline) ---
+// --- Image Modal ---
 const ImageModal = ({ images, onClose }) => {
   if (!images || images.length === 0) return null;
 
-  const handleDownload = (fullUrl, name) => {
-    const link = document.createElement("a");
-    link.href = fullUrl;
-    link.download = name || "image.jpg";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  console.log(images);
-
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-        {/* Modal Header */}
-        <div className="sticky top-0 bg-white p-4 border-b flex justify-between items-center">
-          <h2 className="text-xl font-semibold">
+<div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4">
+      <div className="bg-white w-full max-w-5xl max-h-[90vh] overflow-y-auto shadow-lg border border-gray-200">
+        {/* Header */}
+        <div className="sticky top-0 bg-white p-4 border-b border-gray-300 flex justify-between items-center">
+          <h2 className="text-xl font-bold text-black">
             Order Images ({images.length} Files)
           </h2>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-800"
-          >
+          <button onClick={onClose} className="text-black hover:text-gray-700">
             <FaTimes size={24} />
           </button>
         </div>
 
-        {/* Modal Content - Image Grid */}
+        {/* Images Grid */}
         <div className="p-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
           {images.map((img, idx) => {
             const fullImageUrl = `${SERVER_BASE_URL}/${img.path}`;
-
             return (
               <div
                 key={idx}
-                className="flex flex-col items-center border rounded-lg p-2 bg-gray-50"
+                className="flex flex-col items-center border border-gray-200 p-2 bg-white hover:shadow-md transition"
               >
                 <img
                   src={fullImageUrl}
                   alt={img.originalname || `image-${idx}`}
-                  className="w-full h-32 object-cover rounded-md mb-2"
+                  className="w-full h-32 object-cover mb-2 border border-gray-200"
                 />
                 <p className="text-xs text-gray-700 text-center mb-1">
-                  Size : {img._doc.size} Quantity : {img._doc.quantity}
+                  Size: {img._doc?.size} | Qty: {img._doc?.quantity}
                 </p>
                 <button
                   onClick={() => window.open(fullImageUrl, "_blank")}
-                  className="w-full bg-blue-500 text-white py-1 rounded-md text-sm hover:bg-blue-600 transition flex items-center justify-center gap-1"
+                  className="w-full bg-white text-black border border-gray-300 py-1 text-sm hover:bg-gray-100 transition flex items-center justify-center gap-1"
                 >
                   <FaDownload /> View
                 </button>
@@ -77,13 +61,51 @@ const ImageModal = ({ images, onClose }) => {
   );
 };
 
-// --- 2. AdminPage Component ---
+// --- Order Details Modal ---
+const OrderDetailsModal = ({ order, onClose, onViewImages }) => {
+  if (!order) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4">
+      <div className="bg-white w-full max-w-3xl max-h-[90vh] overflow-y-auto shadow-lg border border-gray-200 p-6">
+        {/* Header */}
+        <div className="flex justify-between items-center mb-4 border-b border-gray-300 pb-2">
+          <h2 className="text-xl font-bold text-black">Order Details</h2>
+          <button onClick={onClose} className="text-black hover:text-gray-700">
+            <FaTimes size={24} />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="space-y-2 text-gray-800">
+          <p><strong>Customer:</strong> {order.name}</p>
+          <p><strong>Phone:</strong> {order.phone}</p>
+          <p><strong>Address:</strong> {order.street}, {order.city}, {order.emirate}</p>
+          <p><strong>Paper:</strong> {order.paperType}</p>
+          <p><strong>Total:</strong> AED {order.totalAmount}</p>
+          <p><strong>Payment ID:</strong> {order.paymentId}</p>
+        </div>
+
+        {/* View Images Button */}
+        <button
+          onClick={() => onViewImages(order.images)}
+          className="mt-4 w-full bg-white text-black border border-gray-300 py-2 hover:bg-gray-100 transition flex items-center justify-center gap-2 font-medium shadow-sm hover:shadow-md"
+        >
+          <FaImages /> View Images ({order.images.length})
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// --- AdminPage Component ---
 function AdminPage() {
-    const navigate = useNavigate()
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("orders");
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedOrderImages, setSelectedOrderImages] = useState(null);
+  const [selectedOrder, setSelectedOrder] = useState(null);
 
   const tabs = [
     { id: "orders", label: "Orders", icon: <FaClipboardList /> },
@@ -110,64 +132,59 @@ function AdminPage() {
     fetchOrders();
   }, [activeTab]);
 
-  const openImageModal = (images) => {
-    setSelectedOrderImages(images);
-  };
+  const openImageModal = (images) => setSelectedOrderImages(images);
+  const closeImageModal = () => setSelectedOrderImages(null);
 
-  const closeImageModal = () => {
-    setSelectedOrderImages(null);
-  };
+  const openOrderDetails = (order) => setSelectedOrder(order);
+  const closeOrderDetails = () => setSelectedOrder(null);
 
-  const renderOrdersTable = () => {
+  // --- Render folder-like order cards ---
+  const renderOrdersFolders = () => {
     if (loading) return <p>Loading orders...</p>;
     if (!orders.length) return <p>No orders found.</p>;
 
     return (
-      <div className="overflow-x-auto">
-        <table className="min-w-full border border-gray-200 rounded-lg">
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="p-3 border">ID</th>
-              <th className="p-3 border">Customer</th>
-              <th className="p-3 border">Address</th>
-              <th className="p-3 border">Paper</th>
-              <th className="p-3 border">Total (AED)</th>
-              <th className="p-3 border">Payment ID</th>
-              <th className="p-3 border">Files</th>
-            </tr>
-          </thead>
-          <tbody>
-            {orders.map((order) => (
-              <tr key={order._id} className="text-center hover:bg-gray-50">
-                <td className="p-2 border">{order._id.slice(-6)}</td>
-                <td className="p-2 border">
-                  {order.name}
-                  <br />
-                  <span className="text-sm text-gray-500">{order.phone}</span>
-                </td>
-                <td className="p-2 border">{`${order.street}, ${order.city}, ${order.emirate}`}</td>
-                <td className="p-2 border">{order.paperType}</td>
-                <td className="p-2 border font-semibold">
-                  {order.totalAmount}
-                </td>
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        {orders.map((order) => (
+          <div
+            key={order._id}
+            className="bg-white text-gray-900 border border-gray-200 shadow-md p-6 cursor-pointer hover:shadow-lg transition flex flex-col justify-between"
+            onClick={() => openOrderDetails(order)}
+          >
+            {/* Order Info */}
+            <div>
+              <div className="flex items-center gap-3 mb-4">
+                <FaClipboardList size={26} className="text-black" />
+                <h3 className="text-lg font-semibold text-black">
+                  Order {order._id.slice(-6)}
+                </h3>
+              </div>
+              <p className="text-gray-700 mb-1">
+                <span className="font-medium text-gray-900">Customer:</span> {order.name}
+              </p>
+              <p className="text-gray-700 mb-1">
+                <span className="font-medium text-gray-900">Phone:</span> {order.phone}
+              </p>
+              <p className="text-gray-700 mb-1">
+                <span className="font-medium text-gray-900">Address:</span> {order.street}, {order.city}, {order.emirate}
+              </p>
+              <p className="text-gray-700 mb-1">
+                <span className="font-medium text-gray-900">Total:</span> AED {order.totalAmount}
+              </p>
+            </div>
 
-                <td className="p-2 border">{order.paymentId}</td>
-
-                {/* Files button to open modal */}
-                <td className="p-2 border">
-                  <button
-                    onClick={() => openImageModal(order.images)}
-                    className="text-blue-600 hover:text-blue-800 transition flex items-center justify-center gap-1 text-lg mx-auto"
-                    title={`View and Download ${order.images.length} files`}
-                  >
-                    <FaImages />
-                    <span className="text-sm">({order.images.length})</span>
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+            {/* Button at the bottom */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                openImageModal(order.images);
+              }}
+              className="mt-4 w-full bg-white text-black py-2 border border-gray-300 hover:bg-gray-100 transition-all flex items-center justify-center gap-2 font-medium shadow-sm hover:shadow-md"
+            >
+              <FaImages /> View Files ({order.images.length})
+            </button>
+          </div>
+        ))}
       </div>
     );
   };
@@ -175,13 +192,12 @@ function AdminPage() {
   const renderContent = () => {
     switch (activeTab) {
       case "orders":
-        return renderOrdersTable();
+        return renderOrdersFolders();
       case "completed":
         return <div>Completed orders will be displayed here</div>;
       case "users":
         return <div>Users management will be displayed here</div>;
       case "logout":
-        // Add actual logout logic here
         return <div>Logging out...</div>;
       default:
         return null;
@@ -192,9 +208,7 @@ function AdminPage() {
     <div className="flex min-h-screen bg-gray-100">
       {/* Sidebar */}
       <div className="w-64 bg-white shadow-md">
-        <div className="p-6 font-bold text-2xl border-b border-gray-200">
-          Admin Panel
-        </div>
+        <div className="p-6 font-bold text-2xl border-b border-gray-200">Admin Panel</div>
         <ul className="mt-4">
           {tabs.map((tab) => (
             <li
@@ -213,24 +227,26 @@ function AdminPage() {
       {/* Main Content */}
       <div className="flex-1 p-8">
         <div className="flex justify-between items-center mb-6">
-            <h1 className="text-3xl font-semibold mb-6 capitalize">{activeTab}</h1>
-            {/* Go to Home Button */}
-              <button
-                onClick={() => navigate("/")}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-              >
-                <FaHome /> Home
-              </button>
+          <h1 className="text-3xl font-semibold mb-6 capitalize">{activeTab}</h1>
+          <button
+            onClick={() => navigate("/")}
+            className="flex items-center gap-2 px-4 py-2 bg-black text-white hover:bg-gray-800 transition"
+          >
+            <FaHome /> Home
+          </button>
         </div>
 
-        <div className="bg-white p-6 rounded-2xl shadow-md">
-          {renderContent()}
-        </div>
+        <div className="bg-white p-6 shadow-md">{renderContent()}</div>
       </div>
 
-      {/* Image Modal Render */}
-      {selectedOrderImages && (
-        <ImageModal images={selectedOrderImages} onClose={closeImageModal} />
+      {/* Modals */}
+      {selectedOrderImages && <ImageModal images={selectedOrderImages} onClose={closeImageModal} />}
+      {selectedOrder && (
+        <OrderDetailsModal
+          order={selectedOrder}
+          onClose={closeOrderDetails}
+          onViewImages={openImageModal}
+        />
       )}
     </div>
   );
