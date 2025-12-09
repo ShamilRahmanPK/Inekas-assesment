@@ -127,7 +127,7 @@ function AdminPage() {
     const fetchOrders = async () => {
       setLoading(true);
       try {
-        const res = await fetch(`${SERVER_BASE_URL}/api/order`);
+        const res = await fetch(`${SERVER_BASE_URL}/api/orders`);
         const data = await res.json();
         setOrders(data.orders || []);
       } catch (err) {
