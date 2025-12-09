@@ -29,7 +29,7 @@ export default function Checkout() {
 
   const [mapLocation, setMapLocation] = useState({
     lat: 25.2048,
-    lng: 55.2708, // Dubai default
+    lng: 55.2708, 
   });
 
   // Order info
@@ -57,7 +57,27 @@ export default function Checkout() {
 
   const deliveryCharge = 29;
   const AEDtoUSD = 0.27;
-  const totalAmountAED = order ? order.totalAmount + deliveryCharge : 0;
+
+  // Calculate total amount per image
+  const priceBySize = {
+    "3.5X5": 3,
+    "4X6": 5,
+    "5X7": 7,
+    "8X10": 10,
+    "4X4": 4,
+    "8X8": 12,
+  };
+
+  const calculateImagePrice = (img) => {
+    let price = priceBySize[img.size] || 5;
+    if (img.paperType === "Glossy") price += 2;
+    return price * img.quantity;
+  };
+
+  const totalAmountAED = order
+    ? order.images.reduce((sum, img) => sum + calculateImagePrice(img), 0) +
+      deliveryCharge
+    : 0;
 
   const [imagePreviews, setImagePreviews] = useState([]);
   const [isAddressComplete, setIsAddressComplete] = useState(false);
@@ -76,7 +96,7 @@ export default function Checkout() {
 
   useEffect(() => {
     const allFilled = Object.values(address)
-      .filter((_, i) => i < 5) // Only first 5 fields: name, phone, street, city, emirate
+      .filter((_, i) => i < 5)
       .every((val) => val.trim() !== "");
     setIsAddressComplete(allFilled);
   }, [address]);
@@ -110,21 +130,20 @@ export default function Checkout() {
 
     const formData = new FormData();
 
-    formData.append("paperType", order.paperType);
-    formData.append("totalAmount", totalAmountAED);
-
-    formData.append("discountPercent", order.discountPercent || 0);
-    formData.append("promoCode", order.promoCode || "");
-
     order.images.forEach((img, index) => {
       if (img.file) {
         formData.append("images", img.file, img.file.name);
       } else if (img.url) {
         formData.append("imageUrls", img.url);
       }
-      formData.append(`quantity_${index}`, img.quantity);
       formData.append(`size_${index}`, img.size);
+      formData.append(`quantity_${index}`, img.quantity);
+      formData.append(`paperType_${index}`, img.paperType);
     });
+
+    formData.append("totalAmount", totalAmountAED);
+    formData.append("discountPercent", order.discountPercent || 0);
+    formData.append("promoCode", order.promoCode || "");
 
     Object.entries(address).forEach(([key, value]) => {
       formData.append(key, value);
@@ -192,12 +211,12 @@ export default function Checkout() {
 
   if (!order) return null;
 
-  // === Leaflet Map Click Component ===
+
   function LocationMarker({ setLocation, mapLocation }) {
     const map = useMap();
 
     useEffect(() => {
-      map.invalidateSize(); // Fix map rendering in modal
+      map.invalidateSize();
     }, [map]);
 
     useMapEvents({
@@ -205,7 +224,6 @@ export default function Checkout() {
         const lat = e.latlng.lat;
         const lng = e.latlng.lng;
 
-        // Reverse geocode using Nominatim
         try {
           const res = await fetch(
             `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`
@@ -240,7 +258,7 @@ export default function Checkout() {
 
   return (
     <>
-      {/* ===================== FULL SCREEN MAP MODAL ===================== */}
+      {/* MAP MODAL */}
       {openMap && (
         <div className="fixed inset-0 bg-black bg-opacity-70 z-[9999] flex flex-col">
           <div className="flex justify-between p-4 bg-white shadow">
@@ -276,7 +294,7 @@ export default function Checkout() {
         </div>
       )}
 
-      {/* ===================== MAIN CHECKOUT PAGE ===================== */}
+      {/* MAIN PAGE */}
       <div className="min-h-screen bg-gray-50 px-6 lg:px-16 py-12">
         <div className="flex items-center justify-between mb-10">
           <h1 className="text-3xl md:text-4xl font-serif">Checkout</h1>
@@ -315,19 +333,15 @@ export default function Checkout() {
 
             <div className="space-y-1 text-gray-700">
               <div className="mt-2">
-                <span className="font-semibold">Sizes & Quantities:</span>
+                <span className="font-semibold">Sizes, Quantities & Paper:</span>
                 <ul className="list-disc list-inside text-gray-600">
                   {order.images.map((img, idx) => (
                     <li key={idx}>
-                      {img.size} x {img.quantity}
+                      {img.size} x {img.quantity} ({img.paperType})
                     </li>
                   ))}
                 </ul>
               </div>
-
-              <p>
-                <span className="font-semibold">Paper:</span> {order.paperType}
-              </p>
             </div>
 
             <div className="flex gap-2 mt-4 overflow-x-auto py-2">
@@ -344,7 +358,7 @@ export default function Checkout() {
             <div className="mt-6 border-t pt-4 border-gray-200">
               <div className="flex justify-between mb-1">
                 <span>Subtotal:</span>
-                <span>AED {order.totalAmount}</span>
+                <span>AED {order.images.reduce((sum, img) => sum + calculateImagePrice(img), 0)}</span>
               </div>
               <div className="flex justify-between mb-1">
                 <span>Delivery:</span>

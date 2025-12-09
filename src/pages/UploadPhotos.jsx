@@ -11,7 +11,7 @@ export default function UploadPhotos() {
   const { size: initialSize, paperType: initialPaperType } = location.state || {};
 
   const [defaultSize, setDefaultSize] = useState(initialSize || "4X6");
-  const [paperType, setPaperType] = useState(initialPaperType || "Luster");
+  const [defaultPaperType, setDefaultPaperType] = useState(initialPaperType || "Luster");
 
   const sizes = ["3.5X5", "4X6", "5X7", "8X10", "4X4", "8X8"];
   const papers = ["Luster", "Glossy"];
@@ -35,21 +35,21 @@ export default function UploadPhotos() {
     "8X8": 12,
   };
 
-  const calculateImagePrice = (imgSize, quantity) => {
+  const calculateImagePrice = (imgSize, quantity, imgPaperType) => {
     let price = priceBySize[imgSize] || 5;
-    if (paperType === "Glossy") price += 2;
+    if (imgPaperType === "Glossy") price += 2;
     return price * quantity;
   };
 
   // Total amount calculation
   useEffect(() => {
     const total = images.reduce(
-      (sum, img) => sum + calculateImagePrice(img.size, img.quantity),
+      (sum, img) => sum + calculateImagePrice(img.size, img.quantity, img.paperType),
       0
     );
     const discounted = total - (total * discountPercent) / 100;
     setTotalAmount(discounted);
-  }, [images, paperType, discountPercent]);
+  }, [images, discountPercent]);
 
   // Promo code
   const handleApplyPromo = () => {
@@ -76,6 +76,7 @@ export default function UploadPhotos() {
       id: `${file.name}-${file.size}-${Date.now()}`,
       size: defaultSize,
       quantity: 1,
+      paperType: defaultPaperType,
       originalFile: file,
       editedFile: null,
       previewURL: URL.createObjectURL(file),
@@ -136,11 +137,12 @@ export default function UploadPhotos() {
   // Navigate to checkout with only edited images
   const goToAddressPage = () => {
     const imagesToSend = images
-      .filter((img) => img.editedFile) 
+      .filter((img) => img.editedFile)
       .map((img) => ({
         id: img.id,
         size: img.size,
         quantity: img.quantity,
+        paperType: img.paperType,
         file: img.editedFile,
       }));
 
@@ -152,7 +154,6 @@ export default function UploadPhotos() {
     navigate("/checkout", {
       state: {
         images: imagesToSend,
-        paperType,
         totalAmount,
         discountPercent,
         promoCode,
@@ -160,7 +161,7 @@ export default function UploadPhotos() {
     });
   };
 
-  const allEdited = images.every((img) => img.editedFile); 
+  const allEdited = images.every((img) => img.editedFile);
 
   return (
     <div className="bg-white min-h-screen px-4 md:px-10 py-10 pb-40">
@@ -175,8 +176,7 @@ export default function UploadPhotos() {
         <p><strong>Instructions:</strong></p>
         <ul className="list-disc list-inside mt-2">
           <li>Upload your photos using the "UPLOAD PHOTOS" button.</li>
-          <li>Select the size and quantity for each photo.</li>
-          <li>Choose your preferred paper type.</li>
+          <li>Select the size, quantity, and paper type for each photo.</li>
           <li>Click on an image to crop it before proceeding.</li>
           <li><strong>Note:</strong> The "NEXT" button will be enabled only after all images have been cropped.</li>
           <li>You can apply a promo code if available.</li>
@@ -223,6 +223,8 @@ export default function UploadPhotos() {
                   )}
 
                   <div className="p-2">
+                    {/* Size */}
+                    <p className="text-xs my-1">Size</p>
                     <select
                       value={img.size}
                       onChange={(e) =>
@@ -232,14 +234,33 @@ export default function UploadPhotos() {
                           )
                         )
                       }
-                      className="mt-2 w-full border text-sm px-2 py-1"
+                      className="w-full border text-sm px-2 py-1"
                     >
                       {sizes.map((s) => (
                         <option key={s} value={s}>{s}</option>
                       ))}
                     </select>
 
-                    <p className="text-xs my-2">Quantity</p>
+                    {/* Paper Type */}
+                    <p className="text-xs my-1">Paper Type</p>
+                    <select
+                      value={img.paperType}
+                      onChange={(e) =>
+                        setImages((prev) =>
+                          prev.map((item) =>
+                            item.id === img.id ? { ...item, paperType: e.target.value } : item
+                          )
+                        )
+                      }
+                      className="w-full border text-sm px-2 py-1"
+                    >
+                      {papers.map((p) => (
+                        <option key={p} value={p}>{p}</option>
+                      ))}
+                    </select>
+
+                    {/* Quantity */}
+                    <p className="text-xs my-1">Quantity</p>
                     <select
                       value={img.quantity}
                       onChange={(e) =>
@@ -257,7 +278,7 @@ export default function UploadPhotos() {
                     </select>
 
                     <p className="text-xs text-gray-600 mt-1">
-                      Price: <b>AED {calculateImagePrice(img.size, img.quantity)}</b>
+                      Price: <b>AED {calculateImagePrice(img.size, img.quantity, img.paperType)}</b>
                     </p>
                   </div>
                 </div>
@@ -285,13 +306,13 @@ export default function UploadPhotos() {
             </div>
 
             <div>
-              <p className="font-semibold mb-2">Paper Type</p>
+              <p className="font-semibold mb-2">Default Paper Type</p>
               <div className="flex flex-wrap gap-3">
                 {papers.map((p) => (
                   <button
                     key={p}
-                    onClick={() => setPaperType(p)}
-                    className={`px-4 py-2 border text-sm ${paperType === p ? "bg-black text-white" : "bg-white border-gray-300"}`}
+                    onClick={() => setDefaultPaperType(p)}
+                    className={`px-4 py-2 border text-sm ${defaultPaperType === p ? "bg-black text-white" : "bg-white border-gray-300"}`}
                   >
                     {p}
                   </button>
